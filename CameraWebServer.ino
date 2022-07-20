@@ -19,10 +19,29 @@
 
 #include "camera_pins.h"
 
-const char* ssid = "*********";
-const char* password = "*********";
-
 void startCameraServer();
+
+void SmartConfig()
+{
+  WiFi.mode(WIFI_STA);
+  Serial.println("\r\nWait for SmartConfig....");
+  WiFi.beginSmartConfig();
+  while (1)
+  {
+    Serial.print(".");
+    delay(500);
+    if ( WiFi.smartConfigDone())
+    {
+      Serial.println("\r\nSmartConfig Success");
+      Serial.printf("SSID:%s\r\n", WiFi.SSID().c_str());
+      Serial.printf("PSW:%s\r\n", WiFi.psk().c_str());
+
+      Serial.println("WiFi Connected! \r\nLocal IP Address:");
+      Serial.print(WiFi.localIP());
+      break;
+    }
+  }
+}
 
 void setup() {
   Serial.begin(115200);
@@ -90,20 +109,10 @@ void setup() {
   s->set_hmirror(s, 1);
 #endif
 
-  WiFi.begin(ssid, password);
-
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-  Serial.println("");
-  Serial.println("WiFi connected");
+  Serial.println("Start SmartConfig...");
+  SmartConfig();
 
   startCameraServer();
-
-  Serial.print("Camera Ready! Use 'http://");
-  Serial.print(WiFi.localIP());
-  Serial.println("' to connect");
 }
 
 void loop() {
