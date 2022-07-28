@@ -7,7 +7,7 @@
 //            Partial images will be transmitted if image exceeds buffer size
 //
 //            You must select partition scheme from the board menu that has at least 3MB APP space.
-//            Face Recognition is DISABLED for ESP32 and ESP32-S2, because it takes up from 15 
+//            Face Recognition is DISABLED for ESP32 and ESP32-S2, because it takes up from 15
 //            seconds to process single frame. Face Detection is ENABLED if PSRAM is enabled as well
 
 // ===================
@@ -86,11 +86,11 @@ void setup() {
   config.fb_location = CAMERA_FB_IN_PSRAM;
   config.jpeg_quality = 12;
   config.fb_count = 1;
-  
+
   // if PSRAM IC present, init with UXGA resolution and higher JPEG quality
   //                      for larger pre-allocated frame buffer.
-  if(config.pixel_format == PIXFORMAT_JPEG){
-    if(psramFound()){
+  if (config.pixel_format == PIXFORMAT_JPEG) {
+    if (psramFound()) {
       config.jpeg_quality = 10;
       config.fb_count = 2;
       config.grab_mode = CAMERA_GRAB_LATEST;
@@ -127,7 +127,7 @@ void setup() {
     s->set_saturation(s, -2); // lower the saturation
   }
   // drop down frame size for higher initial frame rate
-  if(config.pixel_format == PIXFORMAT_JPEG){
+  if (config.pixel_format == PIXFORMAT_JPEG) {
     s->set_framesize(s, FRAMESIZE_QVGA);
   }
 
@@ -146,7 +146,28 @@ void setup() {
   startCameraServer();
 }
 
+// Wipe the Preferences
+void resetPrefs() {
+  pinMode(4, OUTPUT);
+  // Flash the LED n times each 500ms
+  int n = 3;
+  for (int i = 0; i < n; i++) {
+    digitalWrite(4, HIGH);
+    delay(100);
+    digitalWrite(4, LOW);
+    delay(500);
+  }
+}
+
 void loop() {
-  // Do nothing. Everything is done in another task by the web server
-  delay(10000);
+  // Set GPIO12 as reset PIN
+  // WARNING: GPIO12 is HS2_DATA2 port, it's using for MicroSD socket.
+  int RESET_PIN = 12;
+  pinMode(RESET_PIN, OUTPUT);
+  digitalWrite(RESET_PIN, HIGH);
+  while (true) {
+    while (digitalRead(RESET_PIN) == LOW) {
+      resetPrefs();
+    }
+  }
 }
