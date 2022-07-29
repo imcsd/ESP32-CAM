@@ -1,5 +1,6 @@
 #include "esp_camera.h"
 #include <WiFi.h>
+#include <Preferences.h>
 
 //
 // WARNING!!! PSRAM IC required for UXGA resolution and high JPEG quality
@@ -46,6 +47,13 @@ void SmartConfig()
       Serial.println("\r\nSmartConfig Success");
       Serial.printf("SSID:%s\r\n", WiFi.SSID().c_str());
       Serial.printf("PSW:%s\r\n", WiFi.psk().c_str());
+
+      // Save WiFi info to Preferences
+      Preferences prefs;
+      prefs.begin("wifi_config");
+      prefs.putString("ssid", WiFi.SSID().c_str());
+      prefs.putString("passwd", WiFi.psk().c_str());
+      prefs.end();
 
       Serial.println("WiFi Connected! \r\nLocal IP Address:");
       Serial.print(WiFi.localIP());
@@ -146,6 +154,8 @@ void setup() {
   startCameraServer();
 }
 
+// Preferences start
+
 // Wipe the Preferences
 void resetPrefs() {
   pinMode(4, OUTPUT);
@@ -158,6 +168,8 @@ void resetPrefs() {
     delay(500);
   }
 }
+
+// Preferences end
 
 void loop() {
   // Set GPIO12 as reset PIN
