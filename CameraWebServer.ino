@@ -33,39 +33,13 @@
 
 void startCameraServer();
 
-void SmartConfig()
-{
-  WiFi.mode(WIFI_STA);
-  Serial.println("\r\nWait for SmartConfig....");
-  WiFi.beginSmartConfig();
-  while (1)
-  {
-    Serial.print(".");
-    delay(500);
-    if ( WiFi.smartConfigDone())
-    {
-      Serial.println("\r\nSmartConfig Success");
-      Serial.printf("SSID:%s\r\n", WiFi.SSID().c_str());
-      Serial.printf("PSW:%s\r\n", WiFi.psk().c_str());
-
-      // Save WiFi info to Preferences
-      Preferences prefs;
-      prefs.begin("wifi_config");
-      prefs.putString("ssid", WiFi.SSID().c_str());
-      prefs.putString("passwd", WiFi.psk().c_str());
-      prefs.end();
-
-      Serial.println("WiFi Connected! \r\nLocal IP Address:");
-      Serial.print(WiFi.localIP());
-      break;
-    }
-  }
-}
-
 void setup() {
   Serial.begin(115200);
   Serial.setDebugOutput(true);
   Serial.println();
+
+  // Check Preferences RESET
+  checkPrefsReset();
 
   camera_config_t config;
   config.ledc_channel = LEDC_CHANNEL_0;
@@ -148,13 +122,94 @@ void setup() {
   s->set_vflip(s, 1);
 #endif
 
-  Serial.println("Start SmartConfig...");
-  SmartConfig();
+  Serial.println("Init WiFi connection...");
+  connectWiFi();
 
   startCameraServer();
 }
 
+
+// WiFi Connect Module Start
+void connectWiFi() {
+  // Read wifi setting from preferences.
+  Preferences prefs;
+  prefs.begin("wifi_config");
+  String ssid = prefs.getString("ssid", "");
+  String passwd = prefs.getString("passwd", "");
+  prefs.end();
+
+  // Check whether WiFi config exists
+  if (ssid == "" || passwd == "") {
+    SmartConfig();
+  } else {
+    connectWiFiByPasswd(ssid.c_str(), passwd.c_str());
+  }
+
+  Serial.println("WiFi Connected! \r\nLocal IP Address:");
+  Serial.print(WiFi.localIP());
+}
+
+// Connect WiFi by passwd
+void connectWiFiByPasswd(const char* ssid, const char* passwd) {
+  Serial.printf("\nConnecting WiFi by password, SSID: %s, Password: %s", ssid, passwd);
+  WiFi.begin(ssid, passwd);
+  WiFi.setSleep(false);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+}
+
+// Smart Config
+void SmartConfig()
+{
+  WiFi.mode(WIFI_STA);
+  Serial.println("\r\nWait for SmartConfig....");
+  WiFi.beginSmartConfig();
+  while (1)
+  {
+    Serial.print(".");
+    delay(500);
+    if ( WiFi.smartConfigDone())
+    {
+      Serial.println("\r\nSmartConfig Success");
+      Serial.printf("SSID:%s\r\n", WiFi.SSID().c_str());
+      Serial.printf("PSW:%s\r\n", WiFi.psk().c_str());
+
+      // Save WiFi info to Preferences
+      Preferences prefs;
+      prefs.begin("wifi_config");
+      prefs.putString("ssid", WiFi.SSID());
+      prefs.putString("passwd", WiFi.psk());
+      prefs.end();
+
+
+      break;
+    }
+  }
+}
+// WiFi Connect Module END
+
 // Preferences start
+// Check Prefs Reset by jumper GPIO 12 to GND 3 sec. at startup.
+void checkPrefsReset() {
+  int RESET_PIN = 12;
+  pinMode(RESET_PIN, OUTPUT);
+  digitalWrite(RESET_PIN, HIGH);
+
+  // Check whether RESET_PIN is LOW
+  if (digitalRead(RESET_PIN) == LOW) {
+    unsigned long rst_millis = millis();
+    while (digitalRead(RESET_PIN) == LOW) {}
+    // Calculate RESET_PIN time
+    if (millis() - rst_millis >= 3000) {
+      Serial.println("\nRESET Preferences...");
+      resetPrefs();
+    }
+  }
+  digitalWrite(RESET_PIN, LOW);
+}
 
 // Wipe the Preferences
 void resetPrefs() {
@@ -163,23 +218,13 @@ void resetPrefs() {
   int n = 3;
   for (int i = 0; i < n; i++) {
     digitalWrite(4, HIGH);
-    delay(100);
+    delay(200);
     digitalWrite(4, LOW);
     delay(500);
   }
 }
-
 // Preferences end
 
 void loop() {
-  // Set GPIO12 as reset PIN
-  // WARNING: GPIO12 is HS2_DATA2 port, it's using for MicroSD socket.
-  int RESET_PIN = 12;
-  pinMode(RESET_PIN, OUTPUT);
-  digitalWrite(RESET_PIN, HIGH);
-  while (true) {
-    while (digitalRead(RESET_PIN) == LOW) {
-      resetPrefs();
-    }
-  }
+
 }
