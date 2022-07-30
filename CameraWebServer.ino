@@ -145,13 +145,14 @@ void connectWiFi() {
     connectWiFiByPasswd(ssid.c_str(), passwd.c_str());
   }
 
-  Serial.println("WiFi Connected! \r\nLocal IP Address:");
+  Serial.println("\nWiFi Connected! \r\nLocal IP Address:");
   Serial.print(WiFi.localIP());
 }
 
 // Connect WiFi by passwd
 void connectWiFiByPasswd(const char* ssid, const char* passwd) {
-  Serial.printf("\nConnecting WiFi by password, SSID: %s, Password: %s", ssid, passwd);
+  Serial.println("Connecting WiFi...");
+  Serial.printf("SSID: %s, Password: %s\n", ssid, passwd);
   WiFi.begin(ssid, passwd);
   WiFi.setSleep(false);
 
@@ -213,14 +214,22 @@ void checkPrefsReset() {
 
 // Wipe the Preferences
 void resetPrefs() {
-  pinMode(4, OUTPUT);
+  // Clear Preferences
+  Preferences prefs;
+  prefs.begin("wifi_config");
+  prefs.clear();
+  prefs.end();
+
+  // GPIO33 for LED1 in back of the board.
+  const int LED_INDECATOR = 4;
+  pinMode(LED_INDECATOR, OUTPUT);
   // Flash the LED n times each 500ms
   int n = 3;
   for (int i = 0; i < n; i++) {
-    digitalWrite(4, HIGH);
-    delay(200);
-    digitalWrite(4, LOW);
-    delay(500);
+    digitalWrite(LED_INDECATOR, HIGH);
+    delay(100);
+    digitalWrite(LED_INDECATOR, LOW);
+    delay(900);
   }
 }
 // Preferences end
